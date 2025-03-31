@@ -88,7 +88,7 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
                 api_response = requests.post(
                     "https://api.fireworks.ai/inference/v1/chat/completions",
                     json={
-                        "model": "accounts/fireworks/models/claude-3-haiku-20240307",
+                        "model": "accounts/fireworks/models/openchat-3.5-0106",
                         "messages": st.session_state.messages,
                         "max_tokens": 1000,
                         "temperature": 0.7,
