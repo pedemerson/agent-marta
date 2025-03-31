@@ -2,9 +2,10 @@ import streamlit as st
 import os
 import requests
 
+# 🔐 API Key via secrets
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 
-# Definição da personagem Tereza
+# 👵 Definição da personagem Tereza
 PERSONAGEM = """
 Você é Tereza, uma mulher de 67 anos que está participando de uma conversa com um profissional de saúde.
 Você tem dor lombar crônica há 12 anos, iniciada ao levantar um balde pesado em casa.
@@ -22,7 +23,7 @@ Importante:
 - Use frases curtas, naturais e com emoção humana, como uma senhora real que está contando sua história.
 """
 
-# Funções para questionários simulados
+# 🧠 Funções para questionários simulados
 def responder_questionario(tipo):
     if tipo == "startback":
         respostas = {
@@ -57,18 +58,20 @@ def responder_questionario(tipo):
         texto += f"- {pergunta} → **{resposta}**\n"
     return texto
 
-# Interface
+# 🖥️ Interface do app
 st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
 st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback`, `#psfs` ou `#orebro`.")
 
-# Histórico
+# 📚 Histórico de conversa
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "user", "content": PERSONAGEM}]
 
+# Exibir histórico
 for msg in st.session_state.messages[1:]:
     st.chat_message("user" if msg["role"] == "user" else "assistant").write(msg["content"])
 
+# Entrada de mensagem
 if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
@@ -93,30 +96,28 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
                 "Content-Type": "application/json"
             }
 
-            response = requests.post(
-                "https://api.fireworks.ai/inference/v1/chat/completions",
-                json=payload,
-                headers=headers
-            )
+            try:
+                api_response = requests.post(
+                    "https://api.fireworks.ai/inference/v1/chat/completions",
+                    json=payload,
+                    headers=headers
+                )
+                data = api_response.json()
 
-            # Tenta capturar o conteúdo da resposta de forma segura
-            json_response = response.json()
+                # DEBUG opcional:
+                # st.code(data, language="json")
 
-# DEBUG opcional: ver a estrutura real da resposta
-# st.code(json_response, language="json")
+                if "choices" in data and "message" in data["choices"][0]:
+                    resposta = data["choices"][0]["message"]["content"]
+                elif "choices" in data and "text" in data["choices"][0]:
+                    resposta = data["choices"][0]["text"]
+                else:
+                    resposta = "[Erro: resposta inesperada da API Claude.]"
+                    st.error("❌ A resposta da API não veio no formato esperado.")
 
-try:
-    # Claude retorna como "content" dentro de message
-    resposta = json_response["choices"][0]["message"]["content"]
-except KeyError:
-    try:
-        # Fallback para "text", caso venha nesse formato
-        resposta = json_response["choices"][0]["text"]
-    except KeyError:
-        # Fallback final: resposta padrão com log
-        resposta = "[Erro: resposta inválida da API.]"
-        st.error("⚠️ Erro: Não foi possível interpretar a resposta da API. Verifique a chave da API e o modelo usado.")
-
+            except Exception as e:
+                resposta = f"[Erro na requisição: {e}]"
+                st.error(f"❌ Erro de conexão com a API: {e}")
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
