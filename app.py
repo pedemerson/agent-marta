@@ -101,10 +101,22 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
 
             # Tenta capturar o conteúdo da resposta de forma segura
             json_response = response.json()
-            try:
-                resposta = json_response["choices"][0]["message"]["content"]
-            except KeyError:
-                resposta = json_response["choices"][0].get("text", "[Erro: resposta inválida da API.]")
+
+# DEBUG opcional: ver a estrutura real da resposta
+# st.code(json_response, language="json")
+
+try:
+    # Claude retorna como "content" dentro de message
+    resposta = json_response["choices"][0]["message"]["content"]
+except KeyError:
+    try:
+        # Fallback para "text", caso venha nesse formato
+        resposta = json_response["choices"][0]["text"]
+    except KeyError:
+        # Fallback final: resposta padrão com log
+        resposta = "[Erro: resposta inválida da API.]"
+        st.error("⚠️ Erro: Não foi possível interpretar a resposta da API. Verifique a chave da API e o modelo usado.")
+
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
