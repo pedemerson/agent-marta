@@ -2,8 +2,7 @@ import streamlit as st
 import os
 import requests
 
-# 🔐 API Key da Fireworks via secrets
-FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # 👵 Personagem: Tereza
 PERSONAGEM = """
@@ -23,7 +22,7 @@ Importante:
 - Use frases curtas, naturais e com emoção humana, como uma senhora real que está contando sua história.
 """
 
-# 📋 Funções de questionário
+# Questionários simulados
 def responder_questionario(tipo):
     if tipo == "startback":
         respostas = {
@@ -58,20 +57,19 @@ def responder_questionario(tipo):
         texto += f"- {pergunta} → **{resposta}**\n"
     return texto
 
-# ⚙️ Configuração do app
+# Configuração da página
 st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
 st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback`, `#psfs` ou `#orebro`.")
 
-# 💬 Histórico de mensagens
+# Mensagens
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "user", "content": PERSONAGEM}]
+    st.session_state.messages = [{"role": "system", "content": PERSONAGEM}]
 
-# Exibir mensagens anteriores
 for msg in st.session_state.messages[1:]:
     st.chat_message("user" if msg["role"] == "user" else "assistant").write(msg["content"])
 
-# Caixa de entrada do chat
+# Entrada do usuário
 if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
@@ -85,38 +83,29 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
     else:
         with st.spinner("Tereza está pensando..."):
             try:
-                api_response = requests.post(
-                    "https://api.fireworks.ai/inference/v1/chat/completions",
-                    json={
-                        "model": "accounts/fireworks/models/openchat-3.5-0106",
-                        "messages": st.session_state.messages,
-                        "max_tokens": 1000,
-                        "temperature": 0.7,
-                    },
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
                     headers={
-                        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
+                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                         "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "anthropic/claude-3-haiku",
+                        "messages": st.session_state.messages,
+                        "temperature": 0.7,
                     }
                 )
+                data = response.json()
 
-                data = api_response.json()
-
-                # 🔍 Debug: mostrar resposta bruta da API
+                # DEBUG opcional
                 st.subheader("📦 Resposta bruta da API (debug):")
                 st.code(data, language="json")
 
-                # 🧠 Verificação de formato
-                if "choices" in data and "message" in data["choices"][0]:
-                    resposta = data["choices"][0]["message"]["content"]
-                elif "choices" in data and "text" in data["choices"][0]:
-                    resposta = data["choices"][0]["text"]
-                else:
-                    resposta = "[Erro: resposta inesperada da API Claude.]"
-                    st.error("❌ A resposta da API não veio no formato esperado.")
+                resposta = data["choices"][0]["message"]["content"]
 
             except Exception as e:
-                resposta = f"[Erro na requisição: {e}]"
-                st.error(f"❌ Erro de conexão com a API: {e}")
+                resposta = f"[Erro ao chamar o modelo: {e}]"
+                st.error(resposta)
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
