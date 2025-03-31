@@ -103,6 +103,9 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
                     headers=headers
                 )
                 data = api_response.json()
+st.subheader("📦 Resposta bruta da API (debug):")
+st.code(data, language="json")
+
 
                 # DEBUG opcional:
                 # st.code(data, language="json")
