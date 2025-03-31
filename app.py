@@ -99,12 +99,12 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
                 headers=headers
             )
 
-           json_response = response.json()
-try:
-    resposta = json_response["choices"][0]["message"]["content"]
-except KeyError:
-    resposta = json_response["choices"][0].get("text", "[Erro: resposta inválida da API.]")
-
+            # Tenta capturar o conteúdo da resposta de forma segura
+            json_response = response.json()
+            try:
+                resposta = json_response["choices"][0]["message"]["content"]
+            except KeyError:
+                resposta = json_response["choices"][0].get("text", "[Erro: resposta inválida da API.]")
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
