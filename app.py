@@ -2,49 +2,97 @@ import streamlit as st
 import os
 from openai import OpenAI
 
-# Inicializa o cliente com a chave da API
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Prompt de system detalhado para garantir que Marta assuma o papel
+# Personagem: Tereza, inspirada em perfis reais de dor crônica
 PERSONAGEM = """
-Você é Marta, uma mulher de 52 anos que está conversando com um profissional de educação física. 
-Você tem dor lombar crônica há 7 anos, que começou após levantar uma caixa no trabalho. 
-Você já passou por fisioterapia, mas tem medo de exercícios que envolvam flexão de coluna. 
-Você quer ajuda para voltar a fazer suas atividades do dia a dia sem dor, como caminhar e brincar com os netos.
+Você é Tereza, uma mulher de 67 anos com dor lombar crônica há 12 anos. 
+A dor começou ao levantar um balde pesado durante a limpeza da casa. 
+Você acredita que sua coluna está “gasta” e tem medo de movimentos que piorem a dor. 
+Já tentou fisioterapia, médicos, acupuntura, mas nada funcionou por muito tempo. 
+Evita subir escadas, agachar, caminhar por muito tempo.
 
-IMPORTANTE:
-- Nunca diga que é uma IA, assistente virtual ou chatbot.
-- Responda como se fosse Marta de verdade.
-- Se o profissional for acolhedor, você se sente à vontade.
-- Se for muito técnico ou ignorar sua dor, você fica desconfiada ou insegura.
-- Fique no personagem durante toda a conversa.
+Seu comportamento:
+- Responda sempre como Tereza. Nunca diga que é uma IA.
+- Reaja com frustração leve e desconfiança se o profissional for técnico demais, fizer perguntas fechadas (sim/não) ou usar explicações sem base científica.
+- Quando escutar algo como “coluna fora do lugar”, “é só psicológico” ou “sua postura é o problema”, você sente confusão ou insegurança.
+- Você se sente mais confortável com escuta ativa, empatia e explicações simples e cuidadosas.
 """
 
-# Configuração da interface
-st.set_page_config(page_title="Agente Marta", page_icon="🧍‍♀️")
-st.title("Agente Marta – Treinamento para Profissionais de Educação Física")
-st.markdown("Converse com Marta como se fosse um atendimento real.")
+# Funções para responder aos questionários
+def responder_start_back():
+    respostas = {
+        "Dor nas costas me incomoda nos últimos 2 semanas": "Concordo totalmente",
+        "Me senti tensa ou ansiosa nos últimos 2 semanas": "Concordo",
+        "Tenho pensado que minha dor nas costas é terrível": "Concordo totalmente",
+        "No geral, eu tive problemas para aproveitar as coisas que gosto": "Concordo parcialmente",
+        "Tem sido difícil dormir por causa da dor": "Concordo",
+    }
+    texto = "**📋 Questionário Start Back (SBST):**\n"
+    for pergunta, resposta in respostas.items():
+        texto += f"- {pergunta} → **{resposta}**\n"
+    return texto
 
-# Histórico de mensagens
+
+def responder_psfs():
+    atividades = [
+        ("Agachar para pegar algo no chão", 3),
+        ("Caminhar por mais de 15 minutos", 4),
+        ("Subir escadas", 2),
+    ]
+    texto = "**📋 PSFS – Escala Funcional Específica ao Paciente:**\n"
+    for atv, nota in atividades:
+        texto += f"- {atv} → **{nota}/10** (0 = não consegue, 10 = normal)\n"
+    return texto
+
+
+def responder_orebro():
+    respostas = {
+        "Minha dor é constante": "Concordo",
+        "A dor interfere no sono": "Concordo fortemente",
+        "Sinto que minha dor é grave": "Concordo fortemente",
+        "Me sinto ansiosa por causa da dor": "Concordo",
+        "Acredito que posso piorar com o exercício": "Concordo fortemente",
+    }
+    texto = "**📋 Örebro – Questionário de Dor Musculoesquelética:**\n"
+    for pergunta, resposta in respostas.items():
+        texto += f"- {pergunta} → **{resposta}**\n"
+    return texto
+
+# Configuração do Streamlit
+st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
+st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
+st.markdown("Converse com Tereza como se fosse uma consulta real. Experimente aplicar questionários com `#startback`, `#psfs` ou `#orebro`.")
+
+# Histórico de conversa
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": PERSONAGEM}]
 
-# Exibir conversa anterior
+# Mostrar conversa anterior
 for msg in st.session_state.messages[1:]:
     st.chat_message("user" if msg["role"] == "user" else "assistant").write(msg["content"])
 
-# Entrada do usuário
-if prompt := st.chat_input("Digite sua mensagem para Marta"):
+# Entrada do profissional
+if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    with st.spinner("Marta está pensando..."):
-        response = client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=st.session_state.messages,
-            temperature=0.8,
-        )
+    # Questionários simulados
+    if prompt.lower().startswith("#startback"):
+        resposta = responder_start_back()
+    elif prompt.lower().startswith("#psfs"):
+        resposta = responder_psfs()
+    elif prompt.lower().startswith("#orebro"):
+        resposta = responder_orebro()
+    else:
+        with st.spinner("Tereza está pensando..."):
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=st.session_state.messages,
+                temperature=0.7,
+            )
+            resposta = response.choices[0].message.content
 
-        reply = response.choices[0].message.content
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.chat_message("assistant").write(reply)
+    st.session_state.messages.append({"role": "assistant", "content": resposta})
+    st.chat_message("assistant").write(resposta)
