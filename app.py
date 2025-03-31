@@ -1,11 +1,9 @@
 import streamlit as st
-import openai
 import os
 from openai import OpenAI
 
-
-# API Key via ambiente seguro
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Inicializar cliente OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Definição do personagem
 PERSONAGEM = """
@@ -24,7 +22,7 @@ st.markdown("Converse com Marta como se fosse um atendimento real.")
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": PERSONAGEM}]
 
-# Mostrar histórico
+# Mostrar histórico anterior
 for msg in st.session_state.messages[1:]:
     st.chat_message(msg["role"]).write(msg["content"])
 
@@ -33,17 +31,13 @@ if prompt := st.chat_input("Digite sua mensagem para Marta"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # Enviar para OpenAI
     with st.spinner("Marta está pensando..."):
-        client = openai.OpenAI()
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=st.session_state.messages,
+            temperature=0.7,
+        )
 
-response = client.chat.completions.create(
-    model="gpt-4-turbo",
-    messages=st.session_state.messages,
-    temperature=0.7,
-)
-
-msg_marta = response.choices[0].message.content
-
+        msg_marta = response.choices[0].message.content
         st.session_state.messages.append({"role": "assistant", "content": msg_marta})
         st.chat_message("assistant").write(msg_marta)
