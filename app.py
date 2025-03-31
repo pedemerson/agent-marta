@@ -94,7 +94,7 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
     else:
         with st.spinner("Tereza está pensando..."):
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4-turbo",
                 messages=st.session_state.messages,
                 temperature=0.7,
             )
