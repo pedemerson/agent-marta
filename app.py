@@ -2,10 +2,10 @@ import streamlit as st
 import os
 import requests
 
-# 🔐 API Key via secrets
+# 🔐 API Key da Fireworks via secrets
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 
-# 👵 Definição da personagem Tereza
+# 👵 Personagem: Tereza
 PERSONAGEM = """
 Você é Tereza, uma mulher de 67 anos que está participando de uma conversa com um profissional de saúde.
 Você tem dor lombar crônica há 12 anos, iniciada ao levantar um balde pesado em casa.
@@ -23,7 +23,7 @@ Importante:
 - Use frases curtas, naturais e com emoção humana, como uma senhora real que está contando sua história.
 """
 
-# 🧠 Funções para questionários simulados
+# 📋 Funções de questionário
 def responder_questionario(tipo):
     if tipo == "startback":
         respostas = {
@@ -52,26 +52,26 @@ def responder_questionario(tipo):
         titulo = "📋 Örebro – Questionário de Dor Musculoesquelética"
     else:
         return ""
-    
+
     texto = f"**{titulo}:**\n"
     for pergunta, resposta in respostas.items():
         texto += f"- {pergunta} → **{resposta}**\n"
     return texto
 
-# 🖥️ Interface do app
+# ⚙️ Configuração do app
 st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
 st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback`, `#psfs` ou `#orebro`.")
 
-# 📚 Histórico de conversa
+# 💬 Histórico de mensagens
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "user", "content": PERSONAGEM}]
 
-# Exibir histórico
+# Exibir mensagens anteriores
 for msg in st.session_state.messages[1:]:
     st.chat_message("user" if msg["role"] == "user" else "assistant").write(msg["content"])
 
-# Entrada de mensagem
+# Caixa de entrada do chat
 if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
@@ -84,42 +84,39 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
         resposta = responder_questionario("orebro")
     else:
         with st.spinner("Tereza está pensando..."):
-            payload = {
-                "model": "accounts/fireworks/models/claude-3-haiku",
-                "messages": st.session_state.messages,
-                "max_tokens": 1000,
-                "temperature": 0.7,
-            }
+            try:
+                api_response = requests.post(
+                    "https://api.fireworks.ai/inference/v1/chat/completions",
+                    json={
+                        "model": "accounts/fireworks/models/claude-3-haiku",
+                        "messages": st.session_state.messages,
+                        "max_tokens": 1000,
+                        "temperature": 0.7,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                )
 
-            headers = {
-                "Authorization": f"Bearer {FIREWORKS_API_KEY}",
-                "Content-Type": "application/json"
-            }
+                data = api_response.json()
 
-           try:
-    api_response = requests.post(
-        "https://api.fireworks.ai/inference/v1/chat/completions",
-        json=payload,
-        headers=headers
-    )
-    data = api_response.json()
+                # 🔍 Debug: mostrar resposta bruta da API
+                st.subheader("📦 Resposta bruta da API (debug):")
+                st.code(data, language="json")
 
-    # DEBUG: mostrar resposta bruta no app
-    st.subheader("📦 Resposta bruta da API (debug):")
-    st.code(data, language="json")
+                # 🧠 Verificação de formato
+                if "choices" in data and "message" in data["choices"][0]:
+                    resposta = data["choices"][0]["message"]["content"]
+                elif "choices" in data and "text" in data["choices"][0]:
+                    resposta = data["choices"][0]["text"]
+                else:
+                    resposta = "[Erro: resposta inesperada da API Claude.]"
+                    st.error("❌ A resposta da API não veio no formato esperado.")
 
-    if "choices" in data and "message" in data["choices"][0]:
-        resposta = data["choices"][0]["message"]["content"]
-    elif "choices" in data and "text" in data["choices"][0]:
-        resposta = data["choices"][0]["text"]
-    else:
-        resposta = "[Erro: resposta inesperada da API Claude.]"
-        st.error("❌ A resposta da API não veio no formato esperado.")
-
-except Exception as e:
-    resposta = f"[Erro na requisição: {e}]"
-    st.error(f"❌ Erro de conexão com a API: {e}")
-
+            except Exception as e:
+                resposta = f"[Erro na requisição: {e}]"
+                st.error(f"❌ Erro de conexão com a API: {e}")
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
