@@ -96,31 +96,30 @@ if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
                 "Content-Type": "application/json"
             }
 
-            try:
-                api_response = requests.post(
-                    "https://api.fireworks.ai/inference/v1/chat/completions",
-                    json=payload,
-                    headers=headers
-                )
-                data = api_response.json()
-st.subheader("📦 Resposta bruta da API (debug):")
-st.code(data, language="json")
+           try:
+    api_response = requests.post(
+        "https://api.fireworks.ai/inference/v1/chat/completions",
+        json=payload,
+        headers=headers
+    )
+    data = api_response.json()
 
+    # DEBUG: mostrar resposta bruta no app
+    st.subheader("📦 Resposta bruta da API (debug):")
+    st.code(data, language="json")
 
-                # DEBUG opcional:
-                # st.code(data, language="json")
+    if "choices" in data and "message" in data["choices"][0]:
+        resposta = data["choices"][0]["message"]["content"]
+    elif "choices" in data and "text" in data["choices"][0]:
+        resposta = data["choices"][0]["text"]
+    else:
+        resposta = "[Erro: resposta inesperada da API Claude.]"
+        st.error("❌ A resposta da API não veio no formato esperado.")
 
-                if "choices" in data and "message" in data["choices"][0]:
-                    resposta = data["choices"][0]["message"]["content"]
-                elif "choices" in data and "text" in data["choices"][0]:
-                    resposta = data["choices"][0]["text"]
-                else:
-                    resposta = "[Erro: resposta inesperada da API Claude.]"
-                    st.error("❌ A resposta da API não veio no formato esperado.")
+except Exception as e:
+    resposta = f"[Erro na requisição: {e}]"
+    st.error(f"❌ Erro de conexão com a API: {e}")
 
-            except Exception as e:
-                resposta = f"[Erro na requisição: {e}]"
-                st.error(f"❌ Erro de conexão com a API: {e}")
 
     st.session_state.messages.append({"role": "assistant", "content": resposta})
     st.chat_message("assistant").write(resposta)
