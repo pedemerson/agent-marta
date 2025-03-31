@@ -1,6 +1,8 @@
 import streamlit as st
 import openai
 import os
+from openai import OpenAI
+
 
 # API Key via ambiente seguro
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -33,11 +35,15 @@ if prompt := st.chat_input("Digite sua mensagem para Marta"):
 
     # Enviar para OpenAI
     with st.spinner("Marta está pensando..."):
-        response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",  # ou gpt-3.5-turbo se quiser economizar
-            messages=st.session_state.messages,
-            temperature=0.7,
-        )
-        msg_marta = response.choices[0].message["content"]
+        client = openai.OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4-turbo",
+    messages=st.session_state.messages,
+    temperature=0.7,
+)
+
+msg_marta = response.choices[0].message.content
+
         st.session_state.messages.append({"role": "assistant", "content": msg_marta})
         st.chat_message("assistant").write(msg_marta)
