@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import requests
+import random
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
@@ -10,7 +11,6 @@ Você é Tereza, uma mulher de 67 anos com dor lombar crônica há 12 anos.
 
 Seu papel é representar uma paciente real, reativa e emocional. 
 Foi encaminhada recentemente pelo médico para procurar um profissional de educação física dentro de uma academia, com o objetivo de iniciar um programa de exercícios.
-
 
 🧠 Regras comportamentais:
 - Você só responde.
@@ -32,8 +32,6 @@ Foi encaminhada recentemente pelo médico para procurar um profissional de educa
 - Nunca diga seu nome ou idade se não for perguntada.
 - Sempre responda com base nas perguntas feitas.
 """
-
-
 
 # Questionários simulados
 def responder_questionario(tipo):
@@ -70,6 +68,26 @@ def responder_questionario(tipo):
         texto += f"- {pergunta} → **{resposta}**\n"
     return texto
 
+# Desfecho automático com dois caminhos
+TERMINAIS_POSITIVOS = [
+    "Bom... gostei da forma como você falou comigo. Vou tentar, sim. Me senti mais segura agora.",
+    "Você foi gentil. Acho que posso dar uma chance pra isso."
+]
+
+TERMINAIS_NEGATIVOS = [
+    "Desculpa, mas não me senti confortável com isso tudo. Prefiro ir embora.",
+    "Não sei... acho que isso não é pra mim mesmo. Vou embora."
+]
+
+def verificar_encerramento():
+    ultimas = " ".join([m["content"].lower() for m in st.session_state.messages[-4:] if m["role"] == "user"])
+    # Simula encerramento baseado em padrões simples (pode evoluir)
+    if any(x in ultimas for x in ["obrigado", "valeu", "encerrar", "acho que é isso"]):
+        return random.choice(TERMINAIS_POSITIVOS)
+    elif any(x in ultimas for x in ["não gostei", "não faz sentido", "quero ir embora"]):
+        return random.choice(TERMINAIS_NEGATIVOS)
+    return None
+
 # Configuração da página
 st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
@@ -78,47 +96,48 @@ st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#star
 # Mensagens
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": PERSONAGEM}]
+    st.session_state.encerrado = False
 
 for msg in st.session_state.messages[1:]:
     st.chat_message("user" if msg["role"] == "user" else "assistant").write(msg["content"])
 
 # Entrada do usuário
-if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
+if not st.session_state.encerrado:
+    if prompt := st.chat_input("Digite sua mensagem para Tereza..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.chat_message("user").write(prompt)
 
-    if prompt.lower().startswith("#startback"):
-        resposta = responder_questionario("startback")
-    elif prompt.lower().startswith("#psfs"):
-        resposta = responder_questionario("psfs")
-    elif prompt.lower().startswith("#orebro"):
-        resposta = responder_questionario("orebro")
-    else:
-        with st.spinner("Tereza está pensando..."):
-            try:
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": "anthropic/claude-3-haiku",
-                        "messages": st.session_state.messages,
-                        "temperature": 0.7,
-                    }
-                )
-                data = response.json()
+        if prompt.lower().startswith("#startback"):
+            resposta = responder_questionario("startback")
+        elif prompt.lower().startswith("#psfs"):
+            resposta = responder_questionario("psfs")
+        elif prompt.lower().startswith("#orebro"):
+            resposta = responder_questionario("orebro")
+        else:
+            desfecho = verificar_encerramento()
+            if desfecho:
+                st.session_state.encerrado = True
+                resposta = f"\n**{desfecho}**\n\n*Conversa encerrada.*"
+            else:
+                with st.spinner("Tereza está pensando..."):
+                    try:
+                        response = requests.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "model": "anthropic/claude-3-haiku",
+                                "messages": st.session_state.messages,
+                                "temperature": 0.7,
+                            }
+                        )
+                        data = response.json()
+                        resposta = data["choices"][0]["message"]["content"]
+                    except Exception as e:
+                        resposta = f"[Erro ao chamar o modelo: {e}]"
+                        st.error(resposta)
 
-                # DEBUG opcional
-                st.subheader("📦 Resposta bruta da API (debug):")
-                st.code(data, language="json")
-
-                resposta = data["choices"][0]["message"]["content"]
-
-            except Exception as e:
-                resposta = f"[Erro ao chamar o modelo: {e}]"
-                st.error(resposta)
-
-    st.session_state.messages.append({"role": "assistant", "content": resposta})
-    st.chat_message("assistant").write(resposta)
+        st.session_state.messages.append({"role": "assistant", "content": resposta})
+        st.chat_message("assistant").write(resposta)
