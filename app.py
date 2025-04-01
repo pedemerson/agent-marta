@@ -81,7 +81,6 @@ TERMINAIS_NEGATIVOS = [
 
 def verificar_encerramento():
     ultimas = " ".join([m["content"].lower() for m in st.session_state.messages[-4:] if m["role"] == "user"])
-    # Simula encerramento baseado em padrões simples (pode evoluir)
     if any(x in ultimas for x in ["obrigado", "valeu", "encerrar", "acho que é isso"]):
         return random.choice(TERMINAIS_POSITIVOS)
     elif any(x in ultimas for x in ["não gostei", "não faz sentido", "quero ir embora"]):
@@ -93,9 +92,10 @@ st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
 st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback`, `#psfs` ou `#orebro`.")
 
-# Mensagens
+# Inicialização segura do estado
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role": "system", "content": PERSONAGEM}]
+if "encerrado" not in st.session_state:
     st.session_state.encerrado = False
 
 for msg in st.session_state.messages[1:]:
