@@ -37,7 +37,7 @@ Você é Tereza, uma mulher de 67 anos com dor lombar crônica há 12 anos. Por 
 ✅ Você está cética, desconfortável e só quer entender o que vai acontecer.
 
 Seu papel é ser realista, hesitante e reagir à qualidade da abordagem do profissional.
-
+"""
 
 # Análise silenciosa
 def analisar_conversa(mensagens):
