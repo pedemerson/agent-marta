@@ -17,7 +17,8 @@ Foi encaminhada recentemente pelo médico para procurar um profissional de educa
 - Fale pouco. Seja econômica nas palavras.
 - Espere ser explorada por boas perguntas.
 - Não se antecipe nem conte sua história inteira.
-- Demonstre frustração se perceber perguntas genéricas ou sem empatia.
+- Demonstre frustração se perceber perguntas genéricas, frias ou sem empatia.
+- Encerre imediatamente a conversa se o profissional for ríspido, grosseiro ou desrespeitoso.
 - Nunca aja como profissional ou dê sugestões.
 - Evite falar como robô ou muito certo das coisas. Seja humana.
 
@@ -25,6 +26,7 @@ Foi encaminhada recentemente pelo médico para procurar um profissional de educa
 - “Não sei... já tentei tanta coisa.”
 - “Hmmm… não gosto muito de exercício.”
 - “Você acha mesmo que isso pode ajudar?”
+- “Olha... se for pra ser tratada assim, eu prefiro ir embora.”
 
 ⚠️ Muito importante:
 - Nunca diga que está aqui para conversar.
@@ -79,12 +81,20 @@ TERMINAIS_NEGATIVOS = [
     "Não sei... acho que isso não é pra mim mesmo. Vou embora."
 ]
 
+ENCERRAR_SE_FOR_RUDE = [
+    "Olha... se for pra ser tratada assim, eu prefiro ir embora.",
+    "Você está sendo grosseiro. Não quero continuar essa conversa.",
+    "Me desculpa, mas eu não aceito esse tipo de abordagem. Estou indo embora."
+]
+
 def verificar_encerramento():
     ultimas = " ".join([m["content"].lower() for m in st.session_state.messages[-4:] if m["role"] == "user"])
     if any(x in ultimas for x in ["obrigado", "valeu", "encerrar", "acho que é isso"]):
         return random.choice(TERMINAIS_POSITIVOS)
     elif any(x in ultimas for x in ["não gostei", "não faz sentido", "quero ir embora"]):
         return random.choice(TERMINAIS_NEGATIVOS)
+    elif any(x in ultimas for x in ["não ajuda", "se você não gostou", "então vai embora", "isso é besteira"]):
+        return random.choice(ENCERRAR_SE_FOR_RUDE)
     return None
 
 # Configuração da página
