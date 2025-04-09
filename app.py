@@ -103,7 +103,7 @@ def verificar_encerramento():
 # Configuração da página
 st.set_page_config(page_title="Agente Tereza", page_icon="🧓")
 st.title("Agente Tereza – Simulador de Paciente com Dor Crônica")
-st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback`, `#psfs` ou `#orebro`.")
+st.markdown("Converse com Tereza como se fosse uma consulta real. Aplique `#startback` ou `#psfs`")
 
 # Inicialização segura do estado
 if "messages" not in st.session_state:
